@@ -25,17 +25,19 @@ def main():
             make_list(days, schedule)
             current_changes = True  # Αλλαγές στο πρόγραμμα
         elif choice == "2":
+            search_lesson(schedule)
+        elif choice == "3":
             update_schedule(schedule)
             current_changes = True  # Αλλαγές στο πρόγραμμα
-        elif choice == "3":
-            print_schedule(schedule)
         elif choice == "4":
+            print_schedule(schedule)
+        elif choice == "5":
             save_schedule(schedule)
             current_changes = False # Δεν υπάρχουν αλλαγές μετά την αποθήκευση
-        elif choice == "5":
+        elif choice == "6":
             delete_all_schedule(schedule)  # Κλήση της συνάρτησης διαγραφής
             current_changes = False # Δεν υπάρχει κάτι για αποθήκευση
-        elif choice == "6":
+        elif choice == "7":
             if current_changes:
                 print("⚠️ Υπάρχουν αλλαγές που δεν έχουν αποθηκευτεί.")
                 save = input("Θέλετε να αποθηκεύσετε το πρόγραμμα πριν κλείσετε; (ναι/οχι): ").strip().lower()
@@ -46,12 +48,13 @@ def main():
             print("Το πρόγραμμα τερματίστηκε.")
             break
         else :
-            print("Παρακαλώ επιλέξτε μια από τις επιλογές [1-5].")
+            print("Παρακαλώ επιλέξτε μια από τις επιλογές [1-6].")
 # Τελος Main
 
 def menu():
     print("\nΕπιλέξτε μια από τις παρακάτω επιλογές:")
     print("1. Εισαγωγή Προγράμματος Μαθημάτων")
+    print("2. Αναζήτηση Μαθήματος")
     print("2. Επεξεργασία Προγράμματος Μαθημάτων")
     print("3. Εμφάνιση Προγράμματος Μαθημάτων")
     print("4. Αποθήκευση")
@@ -147,6 +150,20 @@ def update_schedule(schedule):
         if next_day == "οχι":
             break
 # Τελος Update_Schedule
+
+def search_lesson(schedule):
+    if not schedule:
+        print("⚠️ Το πρόγραμμα είναι άδειο. Προσθέστε πρώτα μαθήματα.")
+        return
+    lesson = input("Αναζήτηση μαθήματος: ").strip().lower()
+    found = False
+    for day, lessons in schedule.items():
+        for l in lessons:
+            if lesson in l.lower():
+                print(f"🔍 Το μάθημα '{l}' βρίσκεται στην {day}.")
+                found = True
+    if not found:
+        print(f"⚠️ Το μάθημα '{lesson}' δεν βρέθηκε στο πρόγραμμα.")
 
 
 def delete_all_schedule(schedule):
