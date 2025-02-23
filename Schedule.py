@@ -1,5 +1,8 @@
 import os
 import datetime
+import msvcrt
+import re
+
 
 FOLDER_PATH = os.path.join(os.getcwd(), "save")
 FILE_PATH = os.path.join(FOLDER_PATH, "schedule.txt")
@@ -21,7 +24,7 @@ def main():
     choice = -1 
     while True:
         menu()
-        choice = input().strip()
+        choice = input("Επιλογή: ").strip()
         if choice == "1":
             make_list(days, schedule)
             current_changes = True  # Αλλαγές στο πρόγραμμα
@@ -42,14 +45,12 @@ def main():
         elif choice == "7":
             if current_changes:
                 print("⚠️ Υπάρχουν αλλαγές που δεν έχουν αποθηκευτεί.")
-                save = input("Θέλετε να αποθηκεύσετε το πρόγραμμα πριν κλείσετε; (ναι/οχι): ").strip().lower()
-                while save not in ["ναι","οχι"]:
-                    save = input("⚠️ Παρακαλώ απαντήστε μόνο με 'ναι' ή 'οχι': ").strip().lower()
-                if save == "ναι":
+                save = get_choice("Θέλετε να αποθηκεύσετε το πρόγραμμα πριν κλείσετε; (ν/ο): ")
+                if save == "ν":
                     save_schedule(schedule)
             print("Το πρόγραμμα τερματίστηκε.")
             break
-        else :
+        else:
             print("Παρακαλώ επιλέξτε μια από τις επιλογές [1-6].")
 # Τελος Main
 
@@ -62,61 +63,81 @@ def menu():
     print("5. Αποθήκευση")
     print("6. Διαγραφή Όλου του Προγράμματος")
     print("7. Έξοδος")
-    print("Επιλογή: ", end="")
 # Τέλος Menu
 
-
 def load_schedule(schedule):
-    if os.path.exists(FILE_PATH):
-        with open(FILE_PATH, "r") as file:
-            lines = file.readlines()
-            date_time_line = lines[0].strip()
-            last_saved_date_time = date_time_line.split(": ")[1]  # Παίρνουμε την τελευταία ημερομηνία και ώρα αποθήκευσης
-            print(f"📚 Το πρόγραμμα μαθημάτων φορτώθηκε επιτυχώς! Τελευταία αποθήκευση: {last_saved_date_time}")
-
-            for line in lines[1:]:
-                day, lessons = line.strip().split(": ")
-                schedule[day] = lessons.split(", ")
-
-            return last_saved_date_time
-    else:
+    if not os.path.exists(FILE_PATH):
         print("⚠️ Δεν βρέθηκε προηγούμενο αρχείο προγράμματος.")
         return None
+
+    try:
+        with open(FILE_PATH, "r", encoding="utf-8") as file:
+            lines = [line.strip() for line in file.readlines() if line.strip()]  # Αφαιρούμε κενές γραμμές
+
+            if not lines:
+                print("⚠️ Το αρχείο είναι άδειο!")
+                return None
+
+            if not lines[0].startswith("Τελευταία Αποθήκευση: "):
+                print("⚠️ Το αρχείο έχει λανθασμένη μορφή! Παράλειψη φόρτωσης.")
+                return None
+
+            last_saved_date_time = lines[0].split(": ", 1)[1]  
+            print(f"📚 Το πρόγραμμα μαθημάτων φορτώθηκε επιτυχώς! Τελευταία αποθήκευση: {last_saved_date_time}")
+
+            for line in lines[1:]:  # Ξεκινάμε από τη 2η γραμμή
+                if ": " not in line:
+                    continue
+                day, lessons = line.split(": ", 1)
+                lessons_dict = {}
+
+                if lessons:  
+                    for lesson in lessons.split(", "):
+                        if " @ " not in lesson:
+                            print(f"⚠️ Σφάλμα στη γραμμή: {lesson}")
+                            continue
+                        lesson_name, lesson_time = lesson.split(" @ ", 1)
+                        lessons_dict[lesson_name.strip()] = lesson_time.strip()
+
+                schedule[day.strip()] = lessons_dict
+
+            return last_saved_date_time
+    except Exception as e:
+        print(f"⚠️ Σφάλμα κατά το άνοιγμα του αρχείου: {e}")
+        return None
+
 # Τελος Load_Schedule
 
+def is_valid_time_format(time):
+    return re.match(r"^\d{2}:\d{2}-\d{2}:\d{2}$", time)
+# Τελος Is_Valid_Time_Format
 
-def make_list(days, schedule):  # Προσθέτουμε το schedule ως παράμετρο
-    # Για κάθε ημέρα, ρωτάμε τον χρήστη να προσθέσει μαθήματα
+
+def make_list(days, schedule):  
     for day in days:
-        schedule[day] = []  # Δημιουργούμε μια κενή λίστα για την ημέρα
+        schedule[day] = {}  
 
         print(f"\n📅 Προσθήκη μαθημάτων για {day}:")
     
         while True:
             lesson = input("Προσθέστε ένα μάθημα (ή πατήστε Enter για να προχωρήσετε): ").strip()
-        
-            if lesson == "":  # Αν ο χρήστης δεν έγραψε τίποτα
-                while True:
-                    if day == days[-1]:  # Αν έχουμε φτάσει στην Παρασκευή
-                        next_day = input("Θέλετε να ολοκληρώσετε το πρόγραμμα; (ναι/οχι): ").strip().lower()
-                    else:
-                        next_day = input("Θέλετε να προχωρήσετε στην επόμενη ημέρα; (ναι/οχι): ").strip().lower()
-                    if next_day in ["ναι", "οχι"]:
-                        break
-                    print("⚠️ Παρακαλώ απαντήστε μόνο με 'ναι' ή 'οχι'.")
-
-                if next_day == "ναι":
-                    break  # Πάμε στην επόμενη ημέρα
+            if lesson == "":  
+                next_day = get_choice("Θέλετε να προχωρήσετε στην επόμενη ημέρα; (ν/ο): ").strip().lower()
+                if next_day == "ν":
+                    break  
                 else:
-                    continue  # Ξαναζητάμε μάθημα για την ίδια ημέρα
+                    continue  
 
-            schedule[day].append(lesson)  # Προσθήκη του μαθήματος στη λίστα
-            date = datetime.datetime.now()
+            while True:
+                lesson_time = input("Προσθέστε την ώρα του μαθήματος (π.χ. 10:00-11:00): ").strip()
+                if is_valid_time_format(lesson_time):
+                    break
+                print("⚠️ Η ώρα δεν είναι στη σωστή μορφή! Παράδειγμα: 10:00-11:00")
 
-            # 📌 Εκτύπωση του προγράμματος της ημέρας μετά από κάθε προσθήκη
-            print(f"📜 Πρόγραμμα {day} --> {' | '.join(schedule[day])}")
+            schedule[day][lesson] = lesson_time  
+            print(f"📜 Πρόγραμμα {day} --> {lesson} @ {lesson_time}")
+
 # Τελος Make_List
-
 
 def update_schedule(schedule):
     if not schedule:
@@ -128,28 +149,31 @@ def update_schedule(schedule):
         if day not in schedule:
             print("⚠️ Η ημέρα δεν υπάρχει στο πρόγραμμα.")
             continue
-        print(f"Τρέχον πρόγραμμα για την {day}: {', '.join(schedule[day])}")
+        print(f"Τρέχον πρόγραμμα για την {day}:")
+        for lesson, time in schedule[day].items():
+            print(f"{lesson} @ {time}")
         print("Πατήστε 'Π' για να προσθέσετε ένα μάθημα ή 'Δ' για να διαγράψετε ένα μάθημα.")
         choice = input().strip().upper()
         if choice == "Π":
             lesson = input("Προσθέστε ένα μάθημα: ").strip()
+            lesson_time = input("Προσθέστε την ώρα του μαθήματος (π.χ. 10:00-11:00): ").strip()
             if lesson not in schedule[day]:
-                schedule[day].append(lesson)
+                schedule[day][lesson] = lesson_time
             else:
                 print("⚠️ Το μάθημα υπάρχει ήδη στο πρόγραμμα!")
         elif choice == "Δ":
             lesson = input("Διαγράψτε ένα μάθημα: ").strip()
             if lesson in schedule[day]:
-                schedule[day].remove(lesson)
+                del schedule[day][lesson]
             else:
                 print("⚠️ Το μάθημα δεν υπάρχει στο πρόγραμμα!")
         else:
             print("⚠️ Μη έγκυρη επιλογή.")
-        print(f"Νέο πρόγραμμα για την {day}: {', '.join(schedule[day])}")
-        next_day = input("Θέλετε να επεξεργαστείτε κι άλλη ημέρα; (ναι/οχι): ").strip().lower()
-        while next_day not in ["ναι", "οχι"]:
-            next_day = input("⚠️ Παρακαλώ απαντήστε μόνο με 'ναι' ή 'οχι': ").strip().lower()
-        if next_day == "οχι":
+        print(f"Νέο πρόγραμμα για την {day}:")
+        for lesson, time in schedule[day].items():
+            print(f"{lesson} @ {time}")
+        next_day = get_choice("Θέλετε να επεξεργαστείτε κι άλλη ημέρα; (ν/ο): ")
+        if next_day == "ο":
             break
 # Τελος Update_Schedule
 
@@ -157,35 +181,34 @@ def search_lesson(schedule):
     if not schedule:
         print("⚠️ Το πρόγραμμα είναι άδειο. Προσθέστε πρώτα μαθήματα.")
         return
-    lesson = input("Αναζήτηση μαθήματος: ").strip().lower()
-    found = False
-    for day, lessons in schedule.items():
-        for l in lessons:
-            if lesson in l.lower():
-                print(f"🔍 Το μάθημα '{l}' βρίσκεται στην {day}.")
-                found = True
-    if not found:
-        print(f"⚠️ Το μάθημα '{lesson}' δεν βρέθηκε στο πρόγραμμα.")
 
+    lesson_query = input("Αναζήτηση μαθήματος: ").strip().lower()
+    results = []
+
+    for day, lessons in schedule.items():
+        for lesson, time in lessons.items():
+            if lesson_query in lesson.lower():
+                results.append(f"🔍 {lesson} βρίσκεται στην {day} στις {time}.")
+
+    if results:
+        print("\n".join(results))
+    else:
+        print(f"⚠️ Το μάθημα '{lesson_query}' δεν βρέθηκε στο πρόγραμμα.")
+# Τελος Search_Lesson
 
 def delete_all_schedule(schedule):
     if not schedule:
         print("⚠️ Το πρόγραμμα είναι ήδη άδειο.")
         return
     # Ερωτάμε τον χρήστη αν είναι σίγουρος για τη διαγραφή
-    confirmation = input("Είστε σίγουροι ότι θέλετε να διαγράψετε όλο το πρόγραμμα μαθημάτων; (ναι/οχι): ").strip().lower()
-    while confirmation not in ["ναι", "οχι"]:
-        confirmation = input("⚠️ Παρακαλώ απαντήστε μόνο με 'ναι' ή 'οχι': ").strip().lower()
-
-    if confirmation == "ναι":
+    confirmation = get_choice("Είστε σίγουροι ότι θέλετε να διαγράψετε όλο το πρόγραμμα μαθημάτων; (ν/ο): ")
+    if confirmation == "ν":
         schedule.clear()  # Διαγράφουμε όλο το λεξικό
         print("✅ Το πρόγραμμα μαθημάτων διαγράφηκε επιτυχώς.")
     else:
         print("⚠️ Η διαγραφή ακυρώθηκε.")
 # Τελος Delete_All_Schedule
 
-
-# Αποθήκευση του προγράμματος σε ένα αρχείο
 def save_schedule(schedule):
     # Παίρνουμε την τρέχουσα ημερομηνία και ώρα σε μορφή dd/mm/yyyy HH:MM:SS
     now = datetime.datetime.now()
@@ -195,12 +218,13 @@ def save_schedule(schedule):
     if not os.path.exists(FOLDER_PATH):
         os.makedirs(FOLDER_PATH)
 
-    with open(FILE_PATH, "w") as file:
+    with open(FILE_PATH, "w", encoding="utf-8") as file:
         file.write(f"Τελευταία Αποθήκευση: {date_time}\n")   # Αποθηκεύουμε την ημερομηνία & ώρα αποθήκευσης
         for day, lessons in schedule.items():
-            file.write(f"{day}: {', '.join(lessons)}\n")
+            sorted_lessons = sorted(lessons.items(), key=lambda x: x[1])  # Ταξινόμηση με βάση την ώρα
+            lessons_str = ", ".join([f"{lesson} @ {time}" for lesson, time in sorted_lessons])
+            file.write(f"{day}: {lessons_str}\n")
     print(f"📂 Το πρόγραμμα αποθηκεύτηκε στο 'schedule.txt' στις {date_time}.")
-
 # Τελος Save_Schedule
 
 def print_schedule(schedule):
@@ -211,11 +235,20 @@ def print_schedule(schedule):
     print("\n📅 Τελικό Πρόγραμμα Μαθημάτων:")
     for day, lessons in schedule.items():
         if lessons:
-            print(f"{day}: {', '.join(lessons)}")
+            sorted_lessons = sorted(lessons.items(), key=lambda x: x[1])  # Ταξινόμηση με βάση την ώρα
+            for lesson, time in sorted_lessons:
+                print(f"{day}: {lesson} @ {time}")
         else:
             print(f"{day}: -")
 # Τελος Print
 
+def get_choice(prompt):
+    print(prompt, end="", flush=True)
+    while True:
+        choice = msvcrt.getwch().lower()
+        if choice in ["ν", "ο"]:
+            return choice
+# Τελος Get_Choice
 
 # Καλούμε την main για να ξεκινήσει το πρόγραμμα
 main()
