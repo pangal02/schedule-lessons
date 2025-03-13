@@ -11,7 +11,7 @@ def main():
     # Καθορίζουμε το μονοπάτι για το φάκελο και το αρχείο
 
     # Λίστα με τις ημέρες από Δευτέρα έως Παρασκευή
-    days = ["ΔΕΥΤΕΡΑ", "ΤΡΙΤΗ", "ΤΕΤΑΡΤΗ", "ΠΕΜΠΤΗ", "ΠΑΡΑΣΚΕΥΗ"]
+    days = ("ΔΕΥΤΕΡΑ", "ΤΡΙΤΗ", "ΤΕΤΑΡΤΗ", "ΠΕΜΠΤΗ", "ΠΑΡΑΣΚΕΥΗ")
 
     # Κενό λεξικό για το πρόγραμμα μαθημάτων
     schedule = {}
@@ -21,7 +21,7 @@ def main():
     # Αρχική κατάσταση χωρίς αποθήκευση
     current_changes = False
 
-    choice = -1 
+    choice = -1
     while True:
         menu()
         choice = input("Επιλογή: ").strip()
@@ -51,11 +51,13 @@ def main():
             print("Το πρόγραμμα τερματίστηκε.")
             break
         else:
-            print("Παρακαλώ επιλέξτε μια από τις επιλογές [1-6].")
+            print("Παρακαλώ επιλέξτε μια από τις επιλογές [1-7].")
 # Τελος Main
 
 def menu():
-    print("\nΕπιλέξτε μια από τις παρακάτω επιλογές:")
+    print()
+    print("=" * 70)
+    print("Επιλέξτε μια από τις παρακάτω επιλογές:")
     print("1. Εισαγωγή Προγράμματος Μαθημάτων")
     print("2. Αναζήτηση Μαθήματος")
     print("3. Επεξεργασία Προγράμματος Μαθημάτων")
@@ -89,16 +91,17 @@ def load_schedule(schedule):
                 if ": " not in line:
                     continue
                 day, lessons = line.split(": ", 1)
+                print(f"HMERA: {day} ")
                 lessons_dict = {}
 
-                if lessons:  
+                if lessons:
                     for lesson in lessons.split(", "):
-                        if " @ " not in lesson:
-                            print(f"⚠️ Σφάλμα στη γραμμή: {lesson}")
+                        if " @ " not in lesson and lesson != "-":
+                            print(f"⚠️ Σφάλμα στη γραμμή: {lesson}. Λέιπει το '@'.")
                             continue
                         lesson_name, lesson_time = lesson.split(" @ ", 1)
                         lessons_dict[lesson_name.strip()] = lesson_time.strip()
-
+                
                 schedule[day.strip()] = lessons_dict
 
             return last_saved_date_time
@@ -233,13 +236,17 @@ def print_schedule(schedule):
         return
     # Εμφάνιση του τελικού προγράμματος
     print("\n📅 Τελικό Πρόγραμμα Μαθημάτων:")
+    print("=" * 70)
     for day, lessons in schedule.items():
         if lessons:
             sorted_lessons = sorted(lessons.items(), key=lambda x: x[1])  # Ταξινόμηση με βάση την ώρα
             for lesson, time in sorted_lessons:
                 print(f"{day}: {lesson} @ {time}")
+
+            print("-" * 70)
         else:
-            print(f"{day}: -")
+            print(f"{day}: -- Χωρίς Μαθήματα --")
+    print("=" * 70)
 # Τελος Print
 
 def get_choice(prompt):
@@ -247,6 +254,7 @@ def get_choice(prompt):
     while True:
         choice = msvcrt.getwch().lower()
         if choice in ["ν", "ο"]:
+            print()
             return choice
 # Τελος Get_Choice
 
